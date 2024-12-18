@@ -7,13 +7,23 @@ public class EnemyBehaviour : MonoBehaviour
     public float fireRate = 2f;             // How often the enemy shoots (in seconds)
     public float projectileSpeed = 5f;      // Speed of the projectile
     public AudioClip shootSFX;              // Sound effect for enemy shooting
+    public AudioClip destructionSFX;        // Sound effect when the enemy is destroyed
+    public int scoreValue = 10;             // Points awarded for destroying the enemy
 
     private float nextFireTime = 0f;        // Tracks when the enemy can shoot next
+    private ScoreManager scoreManager;      // Reference to the score manager (if any)
 
     private void Start()
     {
         // Randomize the first firing time to avoid all enemies firing simultaneously
         nextFireTime = Time.time + Random.Range(0.5f, fireRate);
+
+        // Try to find the ScoreManager in the scene (optional)
+        scoreManager = FindObjectOfType<ScoreManager>();
+        if (scoreManager == null)
+        {
+            Debug.LogWarning("No ScoreManager found in the scene. Score won't update!");
+        }
     }
 
     private void Update()
@@ -52,5 +62,30 @@ public class EnemyBehaviour : MonoBehaviour
 
         // Optional: Destroy the projectile after 5 seconds to avoid clutter
         Destroy(projectile, 5f);
+    }
+
+    private void OnTriggerEnter2D(Collider2D collision)
+    {
+        // Check if the enemy is hit by a player's projectile (laser)
+        if (collision.CompareTag("Laser"))
+        {
+            Debug.Log($"{gameObject.name} was hit by a laser!");
+
+            // Destroy the enemy and the laser
+            Destroy(gameObject);
+            Destroy(collision.gameObject);
+
+            // Play destruction sound effect
+            if (destructionSFX != null)
+            {
+                AudioSource.PlayClipAtPoint(destructionSFX, transform.position);
+            }
+
+            // Update the score
+            if (scoreManager != null)
+            {
+                scoreManager.AddScore(scoreValue);
+            }
+        }
     }
 }
