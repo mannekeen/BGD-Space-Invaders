@@ -1,55 +1,56 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class EnemyBehaviour : MonoBehaviour
 {
-    public AudioClip destructionSFX; // Sound effect for destruction
-    public int scoreValue = 10;      // Points awarded when this enemy is destroyed
-    private ScoreManager scoreManager;
+    public GameObject enemyProjectilePrefab; // The projectile the enemy will shoot
+    public Transform firePoint;             // The position where the projectile spawns
+    public float fireRate = 2f;             // How often the enemy shoots (in seconds)
+    public float projectileSpeed = 5f;      // Speed of the projectile
+    public AudioClip shootSFX;              // Sound effect for enemy shooting
+
+    private float nextFireTime = 0f;        // Tracks when the enemy can shoot next
 
     private void Start()
     {
-        // Find the ScoreManager in the scene
-        scoreManager = FindObjectOfType<ScoreManager>();
-        if (scoreManager == null)
+        // Randomize the first firing time to avoid all enemies firing simultaneously
+        nextFireTime = Time.time + Random.Range(0.5f, fireRate);
+    }
+
+    private void Update()
+    {
+        // Check if it's time for the enemy to shoot
+        if (Time.time >= nextFireTime)
         {
-            Debug.LogError("ScoreManager not found in the scene. Please add a ScoreManager script!");
+            Shoot(); // Call the shoot function
+            nextFireTime = Time.time + fireRate; // Set the next firing time
         }
     }
 
-    // Triggered when the enemy collides with something (e.g., player projectile)
-    private void OnTriggerEnter2D(Collider2D collision)
+    private void Shoot()
     {
-        // Check if the colliding object is a player projectile
-        if (collision.CompareTag("Laser"))
+        if (enemyProjectilePrefab == null || firePoint == null)
         {
-            Debug.Log($"Enemy {gameObject.name} was hit by a laser!");
-
-            // Play destruction sound
-            if (destructionSFX != null)
-            {
-                AudioSource.PlayClipAtPoint(destructionSFX, transform.position);
-            }
-            else
-            {
-                Debug.LogWarning("No destructionSFX assigned to " + gameObject.name);
-            }
-
-            // Update the score if the ScoreManager is available
-            if (scoreManager != null)
-            {
-                scoreManager.AddScore(scoreValue);
-            }
-
-            // Optional: Add an explosion effect or visual feedback here
-            // Example: Instantiate(explosionEffectPrefab, transform.position, Quaternion.identity);
-
-            // Destroy the enemy game object
-            Destroy(gameObject);
-
-            // Destroy the projectile game object
-            Destroy(collision.gameObject);
+            Debug.LogWarning($"{gameObject.name} is missing a Projectile Prefab or Fire Point!");
+            return;
         }
+
+        // Instantiate the projectile at the fire point's position and rotation
+        GameObject projectile = Instantiate(enemyProjectilePrefab, firePoint.position, firePoint.rotation);
+
+        // Add velocity to the projectile
+        Rigidbody2D rb = projectile.GetComponent<Rigidbody2D>();
+        if (rb != null)
+        {
+            rb.velocity = -firePoint.up * projectileSpeed; // Move the projectile downward
+        }
+
+        // Play shooting sound effect
+        if (shootSFX != null)
+        {
+            AudioSource.PlayClipAtPoint(shootSFX, transform.position);
+        }
+
+        // Optional: Destroy the projectile after 5 seconds to avoid clutter
+        Destroy(projectile, 5f);
     }
 }
