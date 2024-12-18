@@ -4,34 +4,52 @@ using UnityEngine;
 
 public class EnemyBehaviour : MonoBehaviour
 {
-    public AudioClip destructionSFX;
+    public AudioClip destructionSFX; // Sound effect for destruction
+    public int scoreValue = 10;      // Points awarded when this enemy is destroyed
+    private ScoreManager scoreManager;
 
-    // physical simulation hits. For Unity to call this function, at least one of the colliding objects
-	// needs to have their RigidBody component set to "Dynamic" for Body Type
-    private void OnCollisionEnter2D(Collision2D collision)
+    private void Start()
     {
-        print("I Collided!");
+        // Find the ScoreManager in the scene
+        scoreManager = FindObjectOfType<ScoreManager>();
+        if (scoreManager == null)
+        {
+            Debug.LogError("ScoreManager not found in the scene. Please add a ScoreManager script!");
+        }
     }
 
-    // Unity calls this function if the Collider on the game object has "Is Trigger" checked.
-	// Then it doesn't physically react to hits but still detects them
+    // Triggered when the enemy collides with something (e.g., player projectile)
     private void OnTriggerEnter2D(Collider2D collision)
     {
-        print("I was triggered!");
-
-		// Check the other colliding object's tag to know if it's
-		// indeed a player projectile
-        if (collision.tag == "Laser")
+        // Check if the colliding object is a player projectile
+        if (collision.CompareTag("Laser"))
         {
-            // Destroy the alien game object
+            Debug.Log($"Enemy {gameObject.name} was hit by a laser!");
+
+            // Play destruction sound
+            if (destructionSFX != null)
+            {
+                AudioSource.PlayClipAtPoint(destructionSFX, transform.position);
+            }
+            else
+            {
+                Debug.LogWarning("No destructionSFX assigned to " + gameObject.name);
+            }
+
+            // Update the score if the ScoreManager is available
+            if (scoreManager != null)
+            {
+                scoreManager.AddScore(scoreValue);
+            }
+
+            // Optional: Add an explosion effect or visual feedback here
+            // Example: Instantiate(explosionEffectPrefab, transform.position, Quaternion.identity);
+
+            // Destroy the enemy game object
             Destroy(gameObject);
-			
+
             // Destroy the projectile game object
             Destroy(collision.gameObject);
-			
-			// Play an audio clip in the scene and not attached to the alien
-			// so the sound keeps playing even after it's destroyed
-            AudioSource.PlayClipAtPoint(destructionSFX, transform.position);
         }
     }
 }
